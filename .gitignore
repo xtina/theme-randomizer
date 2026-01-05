@@ -3,3 +3,5 @@ out/
 .idea
 build
 .DS_Store
+.intellijPlatform
+publishToken

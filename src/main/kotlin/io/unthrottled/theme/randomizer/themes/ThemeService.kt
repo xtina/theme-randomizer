@@ -1,82 +1,70 @@
 package io.unthrottled.theme.randomizer.themes
 
 import com.intellij.ide.ui.LafManager
+import com.intellij.ide.ui.laf.UIThemeLookAndFeelInfo
+import com.intellij.ide.ui.laf.UiThemeProviderListManager
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.application.ApplicationManager
 import io.unthrottled.theme.randomizer.config.Config
-import io.unthrottled.theme.randomizer.config.ui.isDark
 import io.unthrottled.theme.randomizer.services.LAFProbabilityService
 import io.unthrottled.theme.randomizer.tools.toOptional
-import java.util.Collections
-import java.util.Optional
-import javax.swing.UIManager
+import java.util.*
 import kotlin.math.abs
 
+@Suppress("UnstableApiUsage")
 class ThemeService : Disposable {
-  companion object {
-    val instance: ThemeService
-      get() = ApplicationManager.getApplication().getService(ThemeService::class.java)
-  }
 
-  private fun getRandomTheme(
-    selectableThemeType: SelectableThemeType
-  ): Optional<UIManager.LookAndFeelInfo> {
-    val currentLaf = LafManager.getInstance().currentLookAndFeel
+  @Suppress("UnstableApiUsage")
+  private fun getRandomTheme(selectableThemeType: SelectableThemeType): Optional<out UIThemeLookAndFeelInfo>? {
+    val currentLaf = LafManager.getInstance().currentUIThemeLookAndFeel
     return LAFProbabilityService.instance.pickAssetFromList(
-      getPreferredThemes(selectableThemeType).filter { it.getId() != currentLaf.getId() }
+      getPreferredThemes(selectableThemeType).filter { it.id != currentLaf.id }
     )
   }
 
   private fun getPreferredThemes(selectableThemeType: SelectableThemeType) =
-    LafManager.getInstance().installedLookAndFeels
+    UiThemeProviderListManager.Companion.getInstance().getLaFs()
       .filter {
         when (selectableThemeType) {
           SelectableThemeType.ANY -> true
-          SelectableThemeType.LIGHT -> it.isDark().not()
-          SelectableThemeType.DARK -> it.isDark()
+          SelectableThemeType.LIGHT -> it.isDark.not()
+          SelectableThemeType.DARK -> it.isDark
         }
       }
       .filter { ThemeGatekeeper.instance.isLegit(it) }
+      .toMutableList()
 
-  private fun pickNextTheme(selectableThemeType: SelectableThemeType): Optional<UIManager.LookAndFeelInfo> {
+  private fun pickNextTheme(selectableThemeType: SelectableThemeType): Optional<UIThemeLookAndFeelInfo> {
     val themes = getPreferredThemes(selectableThemeType).sortedBy { it.name }
-    val currentLookAndFeel = LafManager.getInstance().currentLookAndFeel
-    val themeIndex = themes.indexOfLast {
-      it.getId() == currentLookAndFeel.getId()
-    }
+    val currentLookAndFeel = LafManager.getInstance().currentUIThemeLookAndFeel
+    val themeIndex = themes.indexOfLast { it.id == currentLookAndFeel.id }
 
     return themes.toOptional()
       .filter { it.isNotEmpty() }
       .map {
-        it[
-          (
-            if (themeIndex > -1) {
-              themeIndex + 1
-            } else {
-              abs(
-                Collections.binarySearch(
-                  themes,
-                  currentLookAndFeel
-                ) { themeOne, themeTwo ->
-                  themeOne.name.compareTo(themeTwo.name)
-                } + 1
-              )
-            }
-            ) % it.size
-        ]
+        val index = when {
+          themeIndex > -1 -> themeIndex + 1
+          else -> abs(Collections.binarySearch(themes, currentLookAndFeel) { themeOne, themeTwo -> themeOne.name.compareTo(themeTwo.name) } + 1)
+        }
+        it[index % it.size]
       }
   }
 
-  override fun dispose() {}
+  override fun dispose() = Unit
+
   fun nextTheme(
     selectableThemeType: SelectableThemeType = SelectableThemeType.ANY
-  ): Optional<UIManager.LookAndFeelInfo> {
+  ): Optional<out UIThemeLookAndFeelInfo>? {
     // only want to check for theme selection updates when the next theme is being selected
     ThemeSelectionService.instance.reHydrateSelections()
-    return if (Config.instance.isRandomOrder) {
-      getRandomTheme(selectableThemeType)
-    } else {
-      pickNextTheme(selectableThemeType)
+    return when {
+      Config.instance.isRandomOrder -> getRandomTheme(selectableThemeType)
+      else -> pickNextTheme(selectableThemeType)
     }
+  }
+
+  companion object {
+    val instance: ThemeService
+      get() = ApplicationManager.getApplication().getService(ThemeService::class.java)
   }
 }

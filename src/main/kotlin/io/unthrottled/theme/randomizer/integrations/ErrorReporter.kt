@@ -25,8 +25,7 @@ import io.unthrottled.theme.randomizer.tools.runSafely
 import java.awt.Component
 import java.lang.management.ManagementFactory
 import java.text.SimpleDateFormat
-import java.util.Arrays
-import java.util.Properties
+import java.util.*
 import java.util.stream.Collectors
 
 class ErrorReporter : ErrorReportSubmitter() {
@@ -100,7 +99,7 @@ class ErrorReporter : ErrorReportSubmitter() {
       setExtra("Memory", Runtime.getRuntime().maxMemory() / FileUtilRt.MEGABYTE)
       setExtra("Cores", Runtime.getRuntime().availableProcessors())
       setExtra("Non-Bundled Plugins", getNonBundledPlugins())
-      setExtra("Current LAF", LafManager.getInstance().currentLookAndFeel?.name ?: "")
+      setExtra("Current LAF", LafManager.getInstance().currentUIThemeLookAndFeel?.name ?: "")
       setExtra("Plugin Config", gson.toJson(Config.instance))
     }
   }
@@ -121,7 +120,7 @@ class ErrorReporter : ErrorReportSubmitter() {
   }
 
   private fun getNonBundledPlugins(): String {
-    return PluginManagerCore.getPluginSet().allPlugins.stream()
+    return Arrays.stream(PluginManagerCore.plugins)
       .filter { p -> !p.isBundled && p.isEnabled }
       .map { p -> p.pluginId.idString }.collect(Collectors.joining(","))
   }
@@ -136,7 +135,7 @@ class ErrorReporter : ErrorReportSubmitter() {
     if (appInfo.build.isSnapshot) {
       buildDate = SimpleDateFormat("HH:mm, ").format(cal.time)
     }
-    buildDate += DateFormatUtil.formatAboutDialogDate(cal.time)
+    buildDate += DateFormatUtil.formatDate(cal.time)
     buildInfo += IdeBundle.message("about.box.build.date", buildDate)
     return buildInfo
   }

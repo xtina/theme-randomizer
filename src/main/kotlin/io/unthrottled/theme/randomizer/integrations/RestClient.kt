@@ -8,7 +8,7 @@ import org.apache.http.client.config.RequestConfig
 import org.apache.http.client.methods.HttpGet
 import org.apache.http.impl.client.HttpClients
 import java.io.InputStream
-import java.util.Optional
+import java.util.*
 import java.util.concurrent.TimeUnit
 
 object RestClient {
@@ -29,7 +29,7 @@ object RestTools {
   fun <T> performRequest(
     url: String,
     bodyExtractor: (InputStream) -> T
-  ): Optional<T> {
+  ): Optional<T & Any> {
     log.info("Attempting to download remote asset: $url")
     val request = createGetRequest(url)
     return try {
@@ -44,13 +44,13 @@ object RestTools {
       }
     } catch (e: Throwable) {
       log.warn("Unable to get remote asset: $url for raisins", e)
-      Optional.empty<T>()
+      Optional.empty<T & Any>()
     } finally {
       request.releaseConnection()
     }
   }
 
-  fun createGetRequest(remoteUrl: String): HttpGet {
+  private fun createGetRequest(remoteUrl: String): HttpGet {
     val remoteAssetRequest = HttpGet(remoteUrl)
     remoteAssetRequest.addHeader("User-Agent", "Doki-Theme-Jetbrains")
     remoteAssetRequest.config = RequestConfig.custom()
