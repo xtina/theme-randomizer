@@ -58,11 +58,11 @@ repositories {
 }
 
 dependencies {
-  detektPlugins("io.gitlab.arturbosch.detekt:detekt-formatting:1.22.0")
-  implementation("commons-io:commons-io:2.11.0")
-  implementation("io.sentry:sentry:6.18.1")
-  testImplementation("org.assertj:assertj-core:3.24.2")
-  testImplementation("io.mockk:mockk:1.13.5")
+  detektPlugins("io.gitlab.arturbosch.detekt:detekt-formatting:1.23.6")
+  implementation("commons-io:commons-io:2.16.1")
+  implementation("io.sentry:sentry:7.10.0")
+  testImplementation("org.assertj:assertj-core:3.26.0")
+  testImplementation("io.mockk:mockk:1.13.11")
 
   intellijPlatform {
     intellijIdeaUltimate(platformVersion, useInstaller = false)
@@ -131,10 +131,9 @@ detekt {
 }
 
 tasks {
-  withType<JavaCompile> {
-    sourceCompatibility = "17"
-    targetCompatibility = "17"
-    options.compilerArgs = listOf("-Xlint:deprecation", "-Xlint:unchecked")
+  withType<JavaCompile>().configureEach {
+    options.release.set(17)
+    options.compilerArgs.addAll(listOf("-Xlint:deprecation", "-Xlint:unchecked"))
   }
 
   withType<KotlinCompile> {
